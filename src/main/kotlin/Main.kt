@@ -1,56 +1,89 @@
 package ru.netology
 
 fun main() {
-    commissionCalculation("Visa", 1_000.0, 10_000.0)
+    //задаем изначальные паарметры для рассчета
+    val typeOfCard = "Visa"
+    val transferAmount = 1_000.0
+    val previousMonthAmount = 10_000.0
+    //считаем комиссию
+    val commission = commissionCalculation(typeOfCard, transferAmount, previousMonthAmount)
+    //проверяем не получили ли мы отрицательное значение, означающее ошибку при расчете комиссии
+    if (commission >= 0) {
+        println("Комиссия перевода с карты $typeOfCard в размере $transferAmount рублей составила $commission рублей")
+    } else {
+        println("Ошибка при расчете комиссии.")
+    }
 }
 
-fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmount: Double) {
+// проверка дневного и месячного лимита, если лимит превышен возвращаем true
+fun checkLimits(type: String, transferAmount: Double, totalCurrentMonthAmount: Double): Boolean {
     val dailyLimit = 150_000.0
     val monthlyLimit = 600_000.0
-    val commissionRateMastercard = 0.006
-    val commissionRateVisa = 0.0075
-    val minCommissionVisa = 35.0
-    val commissionAddMastercard = 20.0
-    val commissionBorderMastercard = 75_000.0
+    // переменная для суммы переводов VK Pay
+    var totalVkPayAmount = 0.0
 
-    val totalCurrentMonthAmount = previousMonthAmount + transferAmount
-
-    // Проверка на превышение лимитов
     if (transferAmount > dailyLimit) {
         println("Превышен суточный лимит перевода")
-        return
+        return true
     }
 
     if (totalCurrentMonthAmount + transferAmount > monthlyLimit) {
         println("Превышен месячный лимит перевода")
-        return
+        return true
     }
 
-    // Расчет комиссии
-    val commission = when (type) {
-        "Mastercard" -> {
-            if (totalCurrentMonthAmount >= commissionBorderMastercard) {
-                transferAmount * commissionRateMastercard + commissionAddMastercard
-            } else {
-                0.0
-            }
+    if (type == "VK Pay") {
+        if (transferAmount > 15_000.0) {
+            println("Превышен размер разового перевода VK Pay")
+            return true
         }
 
-        "Visa" -> {
-            val calculatedCommission = transferAmount * commissionRateVisa
-            if (calculatedCommission < minCommissionVisa) {
-                minCommissionVisa
-            } else {
-                calculatedCommission
-            }
-        }
-
-        "Мир" -> 0.0
-        else -> {
-            println("Неподдерживаемый тип карты")
-            return
+        totalVkPayAmount += transferAmount
+        if (totalVkPayAmount > 40_000.0) {
+            println("Превышен месячный лимит переводов VK Pay")
+            return true
         }
     }
+    return false
+}
 
-    println("Комиссия перевода с карты $type в размере $transferAmount рублей составила $commission рублей")
+fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmount: Double): Double {
+    val commissionRateMSMaestro = 0.006
+    val minTransferAmountMSMaestro = 300.0
+    val commissionAddMSMaestro = 20.0
+    val commissionBorderMSMaestro = 75_000.0
+    val commissionRateVisaMir = 0.0075
+    val minCommissionVisaMir = 35.0
+
+
+    val totalCurrentMonthAmount = previousMonthAmount + transferAmount
+
+    if (checkLimits(type, transferAmount, totalCurrentMonthAmount)) {
+        return -1.0
+    } else {
+        return when (type) {
+            "Mastercard", "Maestro" -> {
+                if (totalCurrentMonthAmount >= commissionBorderMSMaestro && transferAmount >= minTransferAmountMSMaestro) {
+                    transferAmount * commissionRateMSMaestro + commissionAddMSMaestro
+                } else {
+                    0.0
+                }
+            }
+
+            "Visa", "Мир" -> {
+                val calculatedCommission = transferAmount * commissionRateVisaMir
+                if (calculatedCommission < minCommissionVisaMir) {
+                    minCommissionVisaMir
+                } else {
+                    calculatedCommission
+                }
+            }
+
+            "VK pay" -> 0.0
+            else -> {
+                println("Неподдерживаемый тип карты")
+                -1.0
+            }
+        }
+    }
 }
