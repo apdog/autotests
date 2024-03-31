@@ -1,12 +1,13 @@
-package ru.netology
 
 fun main() {
-    //задаем изначальные паарметры для рассчета
-    val typeOfCard = "Visa"
-    val transferAmount = 1_000.0
-    val previousMonthAmount = 10_000.0
+    //задаем изначальные парметры для расчета
+    val typeOfCard = "Mastercard"
+    val transferAmount = 299.0
+    val previousMonthAmount = 0.0
+    // переменная для суммы переводов VK Pay
+    val totalVkPayAmount = 0.0
     //считаем комиссию
-    val commission = commissionCalculation(typeOfCard, transferAmount, previousMonthAmount)
+    val commission = commissionCalculation(typeOfCard, transferAmount, previousMonthAmount, totalVkPayAmount)
     //проверяем не получили ли мы отрицательное значение, означающее ошибку при расчете комиссии
     if (commission >= 0) {
         println("Комиссия перевода с карты $typeOfCard в размере $transferAmount рублей составила $commission рублей")
@@ -16,11 +17,10 @@ fun main() {
 }
 
 // проверка дневного и месячного лимита, если лимит превышен возвращаем true
-fun checkLimits(type: String, transferAmount: Double, totalCurrentMonthAmount: Double): Boolean {
+fun checkLimits(type: String, transferAmount: Double, totalCurrentMonthAmount: Double, totalVkPayAmount : Double): Boolean {
     val dailyLimit = 150_000.0
     val monthlyLimit = 600_000.0
-    // переменная для суммы переводов VK Pay
-    var totalVkPayAmount = 0.0
+    var totalVkPay = totalVkPayAmount
 
     if (transferAmount > dailyLimit) {
         println("Превышен суточный лимит перевода")
@@ -38,8 +38,8 @@ fun checkLimits(type: String, transferAmount: Double, totalCurrentMonthAmount: D
             return true
         }
 
-        totalVkPayAmount += transferAmount
-        if (totalVkPayAmount > 40_000.0) {
+        totalVkPay += transferAmount
+        if (totalVkPay > 40_000.0) {
             println("Превышен месячный лимит переводов VK Pay")
             return true
         }
@@ -47,7 +47,7 @@ fun checkLimits(type: String, transferAmount: Double, totalCurrentMonthAmount: D
     return false
 }
 
-fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmount: Double): Double {
+fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmount: Double, totalVkPayAmount: Double): Double {
     val commissionRateMSMaestro = 0.006
     val minTransferAmountMSMaestro = 300.0
     val commissionAddMSMaestro = 20.0
@@ -58,12 +58,12 @@ fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmo
 
     val totalCurrentMonthAmount = previousMonthAmount + transferAmount
 
-    if (checkLimits(type, transferAmount, totalCurrentMonthAmount)) {
+    if (checkLimits(type, transferAmount, totalCurrentMonthAmount, totalVkPayAmount)) {
         return -1.0
     } else {
         return when (type) {
             "Mastercard", "Maestro" -> {
-                if (totalCurrentMonthAmount >= commissionBorderMSMaestro && transferAmount >= minTransferAmountMSMaestro) {
+                if (totalCurrentMonthAmount >= commissionBorderMSMaestro || transferAmount < minTransferAmountMSMaestro) {
                     transferAmount * commissionRateMSMaestro + commissionAddMSMaestro
                 } else {
                     0.0
@@ -82,7 +82,7 @@ fun commissionCalculation(type: String, transferAmount: Double, previousMonthAmo
             "VK pay" -> 0.0
             else -> {
                 println("Неподдерживаемый тип карты")
-                -1.0
+                -2.0
             }
         }
     }
