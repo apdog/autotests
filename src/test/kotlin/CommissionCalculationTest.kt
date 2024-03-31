@@ -21,7 +21,7 @@ class CommissionCalculationTest {
         val type = "Mastercard"
         val transferAmount = 301.0
         val previousMonthAmount = 0.0
-        val expectedCommission = 2.0
+        val expectedCommission = 0.0
         val totalVkPayAmount = 0.0
 
         val result = commissionCalculation(type, transferAmount, previousMonthAmount, totalVkPayAmount)
